@@ -51,14 +51,12 @@ export const createPlayer: RequestHandler = async (req, res): Promise<void> => {
       selectedRocketIndex,
       clientVersion,
       secretKey,
-      gameId: '', // Empty game ID initially
     }
   });
 
   res.json({
     id: player.id,
-    name: player.name,
-    secretKey: player.secretKey
+    name: player.name
   });
 };
 
@@ -387,7 +385,13 @@ export const getPlayerInfo: RequestHandler = async (req, res): Promise<void> => 
 
   const player = await prisma.player.findUnique({
     where: { id: playerId },
-    include: {
+    select: {
+      id: true,
+      name: true,
+      bodyColor: true,
+      trailColor: true,
+      selectedRocketIndex: true,
+      clientVersion: true,
       game: true,
       sessions: true,
     },
