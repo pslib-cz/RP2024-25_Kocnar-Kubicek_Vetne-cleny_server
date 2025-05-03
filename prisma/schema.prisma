@@ -22,7 +22,7 @@ model Game {
   questiontypes  Int
   version        String
   seed           String?
-  expirationTime Int
+  expirationTime DateTime
   authorId       String
   author         Player   @relation("GameAuthor", fields: [authorId], references: [id])
   players        Player[] @relation("GameToPlayers")

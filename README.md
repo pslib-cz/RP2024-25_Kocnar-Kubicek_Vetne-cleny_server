@@ -132,7 +132,7 @@ Request Body:
   "galaxy": 0,                // 0-4
   "questiontypes": 0,         // Bitmask of question types
   "version": "string",        // Client version
-  "expiration": 0             // Expiration time in seconds
+  "expiration": 0             // Number of seconds until game expires
 }
 ```
 
@@ -147,6 +147,8 @@ Response:
   }
 }
 ```
+
+Note: The game will automatically expire and become inactive after the specified expiration time. The expiration time is stored as a DateTime in the database and is calculated as `current_time + expiration_seconds`.
 
 ##### Join Game
 ```http

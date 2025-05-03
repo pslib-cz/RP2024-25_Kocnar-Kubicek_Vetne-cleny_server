@@ -101,7 +101,7 @@ export const createGame: RequestHandler = async (req, res): Promise<void> => {
 
   const gameId = uuidv4();
   const seed = crypto.randomBytes(16).toString('hex');
-  const expirationTime = Date.now() + expiration*1000;
+  const expirationTime = new Date(Date.now() + expiration * 1000);
 
   // Try to create a game with a unique code
   let attempts = 0;
@@ -188,7 +188,7 @@ export const joinGame: RequestHandler = async (req, res): Promise<void> => {
     return;
   }
 
-  if (Date.now() > game.expirationTime) {
+  if (new Date() > game.expirationTime) {
     await prisma.game.update({
       where: { id: game.id },
       data: { active: false }
