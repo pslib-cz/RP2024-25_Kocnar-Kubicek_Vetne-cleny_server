@@ -18,6 +18,25 @@ All endpoints (except `/health` and `/players/create`) require two headers:
 - `X-User-Secret`: Your secret key obtained during player creation
 - `X-User-Id`: Your player ID
 
+### Data Models
+
+#### Player
+```typescript
+{
+  id: string;              // Unique identifier
+  name: string;            // Player's display name
+  bodyColor: string;       // Player's body color
+  trailColor: string;      // Player's trail color
+  selectedRocketIndex: number; // Selected rocket index
+  clientVersion: string;   // Client version
+  secretKey: string;       // Authentication secret
+  gameId?: string;         // Optional reference to current game
+  game?: Game;             // Optional relation to current game
+  sessions: GameSession[]; // Player's game sessions
+  authoredGames: Game[];   // Games created by this player
+}
+```
+
 ### Endpoints
 
 #### Player Management

@@ -37,10 +37,10 @@ model Player {
   bodyColor          String
   trailColor         String
   selectedRocketIndex Int
-  gameId             String
   clientVersion      String
   secretKey          String         @unique
-  game               Game           @relation("GameToPlayers", fields: [gameId], references: [id])
+  gameId             String?        // Made optional with ?
+  game               Game?          @relation("GameToPlayers", fields: [gameId], references: [id])
   authoredGames      Game[]         @relation("GameAuthor")
   sessions           GameSession[]
   @@index([gameId])
