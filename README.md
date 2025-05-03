@@ -3,6 +3,16 @@ Node server pro rocnikovou praci Vetne Cleny (Kubicek, Kocnar)
 
 ## API Documentation
 
+### Cross-Origin Resource Sharing (CORS)
+The API supports CORS with the following configuration:
+- All origins are allowed (`*`)
+- Allowed methods: `GET`, `POST`, `PUT`, `PATCH`, `DELETE`, `OPTIONS`
+- Allowed headers: `Content-Type`, `X-User-Secret`, `X-User-Id`
+- Credentials are supported
+- CORS preflight requests are cached for 24 hours
+
+Note: In production, you should replace the wildcard origin (`*`) with your specific domain(s).
+
 ### Authentication
 All endpoints (except `/health` and `/players/create`) require two headers:
 - `X-User-Secret`: Your secret key obtained during player creation

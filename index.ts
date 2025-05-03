@@ -1,5 +1,6 @@
 import express from 'express';
 import bodyParser from 'body-parser';
+import cors from 'cors';
 import { 
   createGame, 
   joinGame,
@@ -15,7 +16,18 @@ import {
 const app = express();
 const port = 5173;
 
+// CORS configuration
+const corsOptions = {
+  origin: '*', // In production, replace with your actual domain(s)
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'X-User-Secret', 'X-User-Id'],
+  exposedHeaders: ['Content-Type'],
+  credentials: true,
+  maxAge: 86400 // 24 hours
+};
+
 // Middleware
+app.use(cors(corsOptions));
 app.use(bodyParser.json());
 
 // Error handling middleware
