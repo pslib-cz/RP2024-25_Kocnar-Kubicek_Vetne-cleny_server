@@ -16,23 +16,45 @@ datasource db {
 model Game {
   id             String   @id @default(uuid())
   active         Boolean  @default(true)
-  code           Int      @unique
+  code           Int      
   difficulty     Int
   galaxy         Int
   questiontypes  Int
   version        String
-  seed           String
-  seeded         Boolean
+  seed           String?
   expirationTime Int
+  authorId       String
+  author         Player   @relation("GameAuthor", fields: [authorId], references: [id])
   players        Player[] @relation("GameToPlayers")
+  sessions       GameSession[]
+  createdAt      DateTime @default(now())
+  @@unique([code, active])
 }
 
 model Player {
-  id                 String @id @default(uuid())
-  gameId             String
+  id                 String         @id // Client-provided ID
   name               String
   bodyColor          String
   trailColor         String
   selectedRocketIndex Int
-  game               Game   @relation("GameToPlayers", fields: [gameId], references: [id])
+  gameId             String
+  clientVersion      String
+  secretKey          String         @unique
+  game               Game           @relation("GameToPlayers", fields: [gameId], references: [id])
+  authoredGames      Game[]         @relation("GameAuthor")
+  sessions           GameSession[]
+  @@index([gameId])
+}
+
+model GameSession {
+  id              String   @id @default(uuid())
+  playerId        String
+  gameId          String
+  player          Player   @relation(fields: [playerId], references: [id])
+  game            Game     @relation(fields: [gameId], references: [id])
+  score           Int      @default(0)
+  correctAnswers  Int      @default(0)
+  completed       Boolean  @default(false)
+  startedAt       DateTime @default(now())
+  endedAt         DateTime?
 }

@@ -1,60 +1,186 @@
 import { PrismaClient } from '@prisma/client';
-import type { Game } from '@prisma/client';
-import type { Request, Response, RequestHandler } from 'express';
+import type { RequestHandler } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import crypto from 'crypto';
 
 const prisma = new PrismaClient();
 
-export const createGame: RequestHandler = async (req, res): Promise<any> => {
-  const { difficulty, galaxy, questiontypes, version } = req.body;
+// Helper function to verify secret key
+async function verifySecretKey(playerId: string, secretKey: string): Promise<boolean> {
+  const player = await prisma.player.findUnique({
+    where: { id: playerId }
+  });
+  return player?.secretKey === secretKey;
+}
 
-  console.log('Received request to create game:', req.body);
+// Player Management
+export const createPlayer: RequestHandler = async (req, res): Promise<void> => {
+  const { id, name, bodyColor, trailColor, selectedRocketIndex, clientVersion, secretKey } = req.body;
 
-  if (typeof difficulty !== 'number' || difficulty < 0 || difficulty > 100) {
-    return res.status(400).json({ error: 'Invalid difficulty value' });
+  if (!validatePlayerInput({ id, name, bodyColor, trailColor, selectedRocketIndex, clientVersion, secretKey })) {
+    res.status(400).json({ error: 'Invalid input parameters' });
+    return;
   }
 
-  if (typeof galaxy !== 'number' || galaxy < 0 || galaxy > 4) {
-    return res.status(400).json({ error: 'Invalid galaxy value' });
+  // Check if player ID already exists
+  const existingPlayer = await prisma.player.findUnique({
+    where: { id }
+  });
+
+  if (existingPlayer) {
+    res.status(409).json({ error: 'Player ID already exists' });
+    return;
   }
 
-  if (typeof questiontypes !== 'number' || questiontypes < 0) {
-    return res.status(400).json({ error: 'Invalid questiontypes value' });
+  // Check if secret key already exists
+  const existingSecretKey = await prisma.player.findUnique({
+    where: { secretKey }
+  });
+
+  if (existingSecretKey) {
+    res.status(409).json({ error: 'Secret key already exists' });
+    return;
   }
 
-  if (typeof version !== 'string') {
-    return res.status(400).json({ error: 'Invalid version value' });
+  const player = await prisma.player.create({
+    data: {
+      id,
+      name,
+      bodyColor,
+      trailColor,
+      selectedRocketIndex,
+      clientVersion,
+      secretKey,
+      gameId: '', // Empty game ID initially
+    }
+  });
+
+  res.json({
+    id: player.id,
+    name: player.name,
+    secretKey: player.secretKey
+  });
+};
+
+// Game Management
+export const createGame: RequestHandler = async (req, res): Promise<void> => {
+  const { difficulty, galaxy, questiontypes, version, expiration } = req.body;
+  const secretKey = req.headers['x-user-secret'] as string;
+  const authorId = req.headers['x-user-id'] as string;
+
+  if (!secretKey) {
+    res.status(401).json({ error: 'Missing secret key' });
+    return;
+  }
+
+  if (!authorId) {
+    res.status(401).json({ error: 'Missing user ID' });
+    return;
+  }
+
+  if (!await verifySecretKey(authorId, secretKey)) {
+    res.status(401).json({ error: 'Invalid secret key' });
+    return;
+  }
+
+  // Validate input
+  if (!validateGameInput(difficulty, galaxy, questiontypes, version)) {
+    res.status(400).json({ error: 'Invalid input parameters' });
+    return;
+  }
+
+  // Check if author exists
+  const author = await prisma.player.findUnique({
+    where: { id: authorId }
+  });
+
+  if (!author) {
+    res.status(404).json({ error: 'Author not found' });
+    return;
   }
 
   const gameId = uuidv4();
-  const code = Math.floor(1000 + Math.random() * 9000); // Generate 4-digit code
-  const seed = crypto.randomBytes(16).toString('hex'); // Generate random seed
-  const expirationTime = Date.now() + 60 * 60 * 1000; // 1 hour
+  const seed = crypto.randomBytes(16).toString('hex');
+  const expirationTime = Date.now() + expiration*1000;
 
-  await prisma.game.create({
-    data: {
-      id: gameId,
-      code,
-      difficulty,
-      galaxy,
-      questiontypes, // Convert to string
-      version,
-      seed,
-      seeded: true, // Default to true
-      active: true,
-      expirationTime,
-    },
+  // Try to create a game with a unique code
+  let attempts = 0;
+  const maxAttempts = 5;
+  let game;
+
+  while (attempts < maxAttempts) {
+    const code = Math.floor(1000 + Math.random() * 9000);
+    
+    // Check if there's an active game with this code
+    const existingGame = await prisma.game.findFirst({
+      where: { 
+        code,
+        active: true 
+      }
+    });
+
+    if (!existingGame) {
+      // No active game with this code, create the game
+      game = await prisma.game.create({
+        data: {
+          id: gameId,
+          code,
+          difficulty,
+          galaxy,
+          questiontypes,
+          version,
+          seed,
+          active: true,
+          expirationTime,
+          authorId,
+        },
+        include: {
+          author: true
+        }
+      });
+      break;
+    }
+
+    attempts++;
+  }
+
+  if (!game) {
+    res.status(500).json({ error: 'Failed to generate unique game code' });
+    return;
+  }
+
+  res.json({ 
+    gameId, 
+    code: game.code,
+    author: {
+      id: game.author.id,
+      name: game.author.name
+    }
   });
-
-  res.json({ gameId, code });
 };
 
 export const joinGame: RequestHandler = async (req, res): Promise<void> => {
-  const { code, version, user } = req.body;
+  const { code, version } = req.body;
+  const secretKey = req.headers['x-user-secret'] as string;
+  const playerId = req.headers['x-user-id'] as string;
+
+  if (!secretKey) {
+    res.status(401).json({ error: 'Missing secret key' });
+    return;
+  }
+
+  if (!playerId) {
+    res.status(401).json({ error: 'Missing user ID' });
+    return;
+  }
+
+  if (!await verifySecretKey(playerId, secretKey)) {
+    res.status(401).json({ error: 'Invalid secret key' });
+    return;
+  }
 
   const game = await prisma.game.findFirst({
-    where: { code: parseInt(code, 10) }, // Ensure code is treated as an integer
+    where: { code: parseInt(code, 10) },
   });
 
   if (!game) {
@@ -63,8 +189,9 @@ export const joinGame: RequestHandler = async (req, res): Promise<void> => {
   }
 
   if (Date.now() > game.expirationTime) {
-    await prisma.game.delete({
+    await prisma.game.update({
       where: { id: game.id },
+      data: { active: false }
     });
     res.status(410).json({ error: 'Game has expired' });
     return;
@@ -75,32 +202,276 @@ export const joinGame: RequestHandler = async (req, res): Promise<void> => {
     return;
   }
 
-  if (!user || typeof user.name !== 'string' || typeof user.bodyColor !== 'string' || typeof user.trailColor !== 'string' || typeof user.selectedRocketIndex !== 'number') {
-    res.status(400).json({ error: 'Invalid user data' });
+  // Find existing player
+  const player = await prisma.player.findUnique({
+    where: { id: playerId }
+  });
+
+  if (!player) {
+    res.status(404).json({ error: 'Player not found' });
     return;
   }
 
-  const playerId = uuidv4();
-  await prisma.player.create({
-    data: {
-      id: playerId,
+  // Update player's game
+  await prisma.player.update({
+    where: { id: playerId },
+    data: { 
       gameId: game.id,
-      name: user.name,
-      bodyColor: user.bodyColor,
-      trailColor: user.trailColor,
-      selectedRocketIndex: user.selectedRocketIndex,
-    },
+      clientVersion: version
+    }
   });
 
   res.json({
-    message: 'Joined game successfully',
+    playerId: player.id,
     game: {
       difficulty: game.difficulty,
       galaxy: game.galaxy,
-      questiontypes: game.questiontypes, // Use as a number directly
+      questiontypes: game.questiontypes,
       version: game.version,
       seed: game.seed,
-      seeded: game.seeded,
     },
   });
 };
+
+// Session Management
+export const startSession: RequestHandler = async (req, res): Promise<void> => {
+  const { gameId } = req.body;
+  const secretKey = req.headers['x-user-secret'] as string;
+  const playerId = req.headers['x-user-id'] as string;
+
+  if (!secretKey) {
+    res.status(401).json({ error: 'Missing secret key' });
+    return;
+  }
+
+  if (!playerId) {
+    res.status(401).json({ error: 'Missing user ID' });
+    return;
+  }
+
+  if (!await verifySecretKey(playerId, secretKey)) {
+    res.status(401).json({ error: 'Invalid secret key' });
+    return;
+  }
+
+  if (!gameId) {
+    res.status(400).json({ error: 'Missing game ID' });
+    return;
+  }
+
+  const [player, game] = await Promise.all([
+    prisma.player.findUnique({ where: { id: playerId } }),
+    prisma.game.findUnique({ where: { id: gameId } })
+  ]);
+
+  if (!player || !game) {
+    res.status(404).json({ error: 'Player or game not found' });
+    return;
+  }
+
+  const session = await prisma.gameSession.create({
+    data: {
+      playerId,
+      gameId,
+      startedAt: new Date(),
+    }
+  });
+
+  res.json({ sessionId: session.id });
+};
+
+export const updateSession: RequestHandler = async (req, res): Promise<void> => {
+  const { sessionId } = req.params;
+  const { score, correctAnswers, completed } = req.body;
+  const secretKey = req.headers['x-user-secret'] as string;
+  const playerId = req.headers['x-user-id'] as string;
+
+  if (!secretKey) {
+    res.status(401).json({ error: 'Missing secret key' });
+    return;
+  }
+
+  if (!playerId) {
+    res.status(401).json({ error: 'Missing user ID' });
+    return;
+  }
+
+  if (!await verifySecretKey(playerId, secretKey)) {
+    res.status(401).json({ error: 'Invalid secret key' });
+    return;
+  }
+
+  if (!sessionId) {
+    res.status(400).json({ error: 'Missing session ID' });
+    return;
+  }
+
+  // Verify the session belongs to the player
+  const session = await prisma.gameSession.findFirst({
+    where: {
+      id: sessionId,
+      playerId: playerId
+    }
+  });
+
+  if (!session) {
+    res.status(404).json({ error: 'Session not found or unauthorized' });
+    return;
+  }
+
+  const updateData: any = {};
+  if (typeof score === 'number') updateData.score = score;
+  if (typeof correctAnswers === 'number') updateData.correctAnswers = correctAnswers;
+  if (typeof completed === 'boolean') {
+    updateData.completed = completed;
+    if (completed) updateData.endedAt = new Date();
+  }
+
+  const updatedSession = await prisma.gameSession.update({
+    where: { id: sessionId },
+    data: updateData
+  });
+
+  res.json(updatedSession);
+};
+
+export const getPlayerSessions: RequestHandler = async (req, res): Promise<void> => {
+  const { playerId } = req.params;
+
+  if (!playerId) {
+    res.status(400).json({ error: 'Missing player ID' });
+    return;
+  }
+
+  const sessions = await prisma.gameSession.findMany({
+    where: { playerId },
+    include: {
+      game: true
+    },
+    orderBy: {
+      startedAt: 'desc'
+    }
+  });
+
+  res.json(sessions);
+};
+
+export const getGameSessions: RequestHandler = async (req, res): Promise<void> => {
+  const { gameId } = req.params;
+
+  if (!gameId) {
+    res.status(400).json({ error: 'Missing game ID' });
+    return;
+  }
+
+  const sessions = await prisma.gameSession.findMany({
+    where: { gameId },
+    include: {
+      player: true
+    },
+    orderBy: {
+      startedAt: 'desc'
+    }
+  });
+
+  res.json(sessions);
+};
+
+export const getPlayerInfo: RequestHandler = async (req, res): Promise<void> => {
+  const { playerId } = req.params;
+
+  if (!playerId) {
+    res.status(400).json({ error: 'Missing player ID' });
+    return;
+  }
+
+  const player = await prisma.player.findUnique({
+    where: { id: playerId },
+    include: {
+      game: true,
+      sessions: true,
+    },
+  });
+
+  if (!player) {
+    res.status(404).json({ error: 'Player not found' });
+    return;
+  }
+
+  res.json(player);
+};
+
+export const syncPlayerConfig: RequestHandler = async (req, res): Promise<void> => {
+  const { name, bodyColor, trailColor, selectedRocketIndex, clientVersion } = req.body;
+  const secretKey = req.headers['x-user-secret'] as string;
+  const playerId = req.headers['x-user-id'] as string;
+
+  if (!secretKey) {
+    res.status(401).json({ error: 'Missing secret key' });
+    return;
+  }
+
+  if (!playerId) {
+    res.status(401).json({ error: 'Missing user ID' });
+    return;
+  }
+
+  if (!await verifySecretKey(playerId, secretKey)) {
+    res.status(401).json({ error: 'Invalid secret key' });
+    return;
+  }
+
+  // Get current player data
+  const player = await prisma.player.findUnique({
+    where: { id: playerId }
+  });
+
+  if (!player) {
+    res.status(404).json({ error: 'Player not found' });
+    return;
+  }
+
+  // Update player configuration
+  const updatedPlayer = await prisma.player.update({
+    where: { id: playerId },
+    data: {
+      name: name || player.name,
+      bodyColor: bodyColor || player.bodyColor,
+      trailColor: trailColor || player.trailColor,
+      selectedRocketIndex: selectedRocketIndex ?? player.selectedRocketIndex,
+      clientVersion: clientVersion || player.clientVersion,
+    }
+  });
+
+  res.json({
+    id: updatedPlayer.id,
+    name: updatedPlayer.name,
+    bodyColor: updatedPlayer.bodyColor,
+    trailColor: updatedPlayer.trailColor,
+    selectedRocketIndex: updatedPlayer.selectedRocketIndex,
+    clientVersion: updatedPlayer.clientVersion
+  });
+};
+
+// Helper functions
+function validateGameInput(difficulty: number, galaxy: number, questiontypes: number, version: string): boolean {
+  return (
+    typeof difficulty === 'number' && difficulty >= 0 && difficulty <= 100 &&
+    typeof galaxy === 'number' && galaxy >= 0 && galaxy <= 4 &&
+    typeof questiontypes === 'number' && questiontypes >= 0 &&
+    typeof version === 'string'
+  );
+}
+
+function validatePlayerInput(player: any): boolean {
+  return (
+    player &&
+    typeof player.id === 'string' &&
+    typeof player.name === 'string' &&
+    typeof player.bodyColor === 'string' &&
+    typeof player.trailColor === 'string' &&
+    typeof player.selectedRocketIndex === 'number' &&
+    typeof player.clientVersion === 'string' &&
+    typeof player.secretKey === 'string'
+  );
+}
