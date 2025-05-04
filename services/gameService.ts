@@ -214,7 +214,7 @@ export const joinGame: RequestHandler = async (req, res): Promise<void> => {
   await prisma.player.update({
     where: { id: playerId },
     data: { 
-      gameId: game.id,
+      activeGameId: game.id,
       clientVersion: version
     }
   });
@@ -392,7 +392,7 @@ export const getPlayerInfo: RequestHandler = async (req, res): Promise<void> => 
       trailColor: true,
       selectedRocketIndex: true,
       clientVersion: true,
-      game: true,
+      activeGame: true,
       sessions: true,
     },
   });
