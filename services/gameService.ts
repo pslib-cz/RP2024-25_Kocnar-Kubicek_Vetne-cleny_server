@@ -15,9 +15,9 @@ async function verifySecretKey(playerId: string, secretKey: string): Promise<boo
 
 // Player Management
 export const createPlayer: RequestHandler = async (req, res): Promise<void> => {
-  const { id, name, bodyColor, trailColor, selectedRocketIndex, clientVersion, secretKey } = req.body;
+  const { id, name, bodyColor, trailColor, levels, selectedRocketIndex, clientVersion, secretKey } = req.body;
 
-  if (!validatePlayerInput({ id, name, bodyColor, trailColor, selectedRocketIndex, clientVersion, secretKey })) {
+  if (!validatePlayerInput({ id, name, bodyColor, trailColor, levels, selectedRocketIndex, clientVersion, secretKey })) {
     res.status(400).json({ error: 'Invalid input parameters' });
     return;
   }
@@ -48,6 +48,7 @@ export const createPlayer: RequestHandler = async (req, res): Promise<void> => {
       name,
       bodyColor,
       trailColor,
+      levels: levels.join(','),
       selectedRocketIndex,
       clientVersion,
       secretKey,
@@ -390,6 +391,7 @@ export const getPlayerInfo: RequestHandler = async (req, res): Promise<void> => 
       name: true,
       bodyColor: true,
       trailColor: true,
+      levels: true,
       selectedRocketIndex: true,
       clientVersion: true,
       activeGame: true,
@@ -402,11 +404,17 @@ export const getPlayerInfo: RequestHandler = async (req, res): Promise<void> => 
     return;
   }
 
-  res.json(player);
+  // Convert levels string back to array
+  const playerWithParsedLevels = {
+    ...player,
+    levels: player.levels.split(',').map(Number)
+  };
+
+  res.json(playerWithParsedLevels);
 };
 
 export const syncPlayerConfig: RequestHandler = async (req, res): Promise<void> => {
-  const { name, bodyColor, trailColor, selectedRocketIndex, clientVersion } = req.body;
+  const { name, bodyColor, trailColor, levels, selectedRocketIndex, clientVersion } = req.body;
   const secretKey = req.headers['x-user-secret'] as string;
   const playerId = req.headers['x-user-id'] as string;
 
@@ -442,19 +450,19 @@ export const syncPlayerConfig: RequestHandler = async (req, res): Promise<void> 
       name: name || player.name,
       bodyColor: bodyColor || player.bodyColor,
       trailColor: trailColor || player.trailColor,
+      levels: levels ? levels.join(',') : player.levels,
       selectedRocketIndex: selectedRocketIndex ?? player.selectedRocketIndex,
       clientVersion: clientVersion || player.clientVersion,
     }
   });
 
-  res.json({
-    id: updatedPlayer.id,
-    name: updatedPlayer.name,
-    bodyColor: updatedPlayer.bodyColor,
-    trailColor: updatedPlayer.trailColor,
-    selectedRocketIndex: updatedPlayer.selectedRocketIndex,
-    clientVersion: updatedPlayer.clientVersion
-  });
+  // Convert levels string back to array for response
+  const playerWithParsedLevels = {
+    ...updatedPlayer,
+    levels: updatedPlayer.levels.split(',').map(Number)
+  };
+
+  res.json(playerWithParsedLevels);
 };
 
 // Helper functions
@@ -474,6 +482,7 @@ function validatePlayerInput(player: any): boolean {
     typeof player.name === 'string' &&
     typeof player.bodyColor === 'string' &&
     typeof player.trailColor === 'string' &&
+    Array.isArray(player.levels) && player.levels.length === 5 && player.levels.every((level: any) => typeof level === 'number') &&
     typeof player.selectedRocketIndex === 'number' &&
     typeof player.clientVersion === 'string' &&
     typeof player.secretKey === 'string'

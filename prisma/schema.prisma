@@ -36,6 +36,7 @@ model Player {
   name               String
   bodyColor          String
   trailColor         String
+  levels             String
   selectedRocketIndex Int
   clientVersion      String
   secretKey          String         @unique
