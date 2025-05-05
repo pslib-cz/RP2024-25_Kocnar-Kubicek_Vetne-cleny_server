@@ -14,37 +14,84 @@ async function verifySecretKey(playerId: string, secretKey: string): Promise<boo
 }
 
 // Player Management
-export const createPlayer: RequestHandler = async (req, res): Promise<void> => {
-  const { id, name, bodyColor, trailColor, levels, selectedRocketIndex, clientVersion, secretKey } = req.body;
+export const upsertPlayer: RequestHandler = async (req, res): Promise<void> => {
+  const { name, bodyColor, trailColor, levels, selectedRocketIndex, clientVersion } = req.body;
+  const secretKey = req.headers['x-user-secret'] as string;
+  const playerId = req.headers['x-user-id'] as string;
 
-  if (!validatePlayerInput({ id, name, bodyColor, trailColor, levels, selectedRocketIndex, clientVersion, secretKey })) {
+  if (!secretKey) {
+    res.status(401).json({ error: 'Missing secret key' });
+    return;
+  }
+
+  if (!playerId) {
+    res.status(401).json({ error: 'Missing user ID' });
+    return;
+  }
+
+  // Check if player already exists
+  const existingPlayer = await prisma.player.findUnique({
+    where: { id: playerId }
+  });
+
+  // If player exists, this is an update operation
+  if (existingPlayer) {
+    // Verify the secret key matches
+    if (existingPlayer.secretKey !== secretKey) {
+      res.status(401).json({ error: 'Invalid secret key' });
+      return;
+    }
+
+    // Update player configuration
+    const updatedPlayer = await prisma.player.update({
+      where: { id: playerId },
+      data: {
+        name: name || existingPlayer.name,
+        bodyColor: bodyColor || existingPlayer.bodyColor,
+        trailColor: trailColor || existingPlayer.trailColor,
+        levels: levels ? levels.join(',') : existingPlayer.levels,
+        selectedRocketIndex: selectedRocketIndex ?? existingPlayer.selectedRocketIndex,
+        clientVersion: clientVersion || existingPlayer.clientVersion,
+      }
+    });
+
+    // Convert levels string back to array for response
+    const playerWithParsedLevels = {
+      ...updatedPlayer,
+      levels: updatedPlayer.levels.split(',').map(Number)
+    };
+
+    res.json(playerWithParsedLevels);
+    return;
+  }
+
+  // This is a create operation since player doesn't exist
+  // Check if all required fields for creating a new player are present
+  if (!name || !bodyColor || !trailColor || !levels || selectedRocketIndex === undefined || !clientVersion) {
+    res.status(400).json({ error: 'Missing required fields for player creation' });
+    return;
+  }
+
+  // Validate input for new player
+  if (!validatePlayerInput({ id: playerId, name, bodyColor, trailColor, levels, selectedRocketIndex, clientVersion, secretKey })) {
     res.status(400).json({ error: 'Invalid input parameters' });
     return;
   }
 
-  // Check if player ID already exists
-  const existingPlayer = await prisma.player.findUnique({
-    where: { id }
-  });
-
-  if (existingPlayer) {
-    res.status(409).json({ error: 'Player ID already exists' });
-    return;
-  }
-
-  // Check if secret key already exists
-  const existingSecretKey = await prisma.player.findUnique({
+  // Check if the secret key is already in use
+  const existingSecretKeyCheck = await prisma.player.findUnique({
     where: { secretKey }
   });
 
-  if (existingSecretKey) {
+  if (existingSecretKeyCheck) {
     res.status(409).json({ error: 'Secret key already exists' });
     return;
   }
 
+  // Create new player
   const player = await prisma.player.create({
     data: {
-      id,
+      id: playerId,
       name,
       bodyColor,
       trailColor,
@@ -408,58 +455,6 @@ export const getPlayerInfo: RequestHandler = async (req, res): Promise<void> => 
   const playerWithParsedLevels = {
     ...player,
     levels: player.levels.split(',').map(Number)
-  };
-
-  res.json(playerWithParsedLevels);
-};
-
-export const syncPlayerConfig: RequestHandler = async (req, res): Promise<void> => {
-  const { name, bodyColor, trailColor, levels, selectedRocketIndex, clientVersion } = req.body;
-  const secretKey = req.headers['x-user-secret'] as string;
-  const playerId = req.headers['x-user-id'] as string;
-
-  if (!secretKey) {
-    res.status(401).json({ error: 'Missing secret key' });
-    return;
-  }
-
-  if (!playerId) {
-    res.status(401).json({ error: 'Missing user ID' });
-    return;
-  }
-
-  if (!await verifySecretKey(playerId, secretKey)) {
-    res.status(401).json({ error: 'Invalid secret key' });
-    return;
-  }
-
-  // Get current player data
-  const player = await prisma.player.findUnique({
-    where: { id: playerId }
-  });
-
-  if (!player) {
-    res.status(404).json({ error: 'Player not found' });
-    return;
-  }
-
-  // Update player configuration
-  const updatedPlayer = await prisma.player.update({
-    where: { id: playerId },
-    data: {
-      name: name || player.name,
-      bodyColor: bodyColor || player.bodyColor,
-      trailColor: trailColor || player.trailColor,
-      levels: levels ? levels.join(',') : player.levels,
-      selectedRocketIndex: selectedRocketIndex ?? player.selectedRocketIndex,
-      clientVersion: clientVersion || player.clientVersion,
-    }
-  });
-
-  // Convert levels string back to array for response
-  const playerWithParsedLevels = {
-    ...updatedPlayer,
-    levels: updatedPlayer.levels.split(',').map(Number)
   };
 
   res.json(playerWithParsedLevels);

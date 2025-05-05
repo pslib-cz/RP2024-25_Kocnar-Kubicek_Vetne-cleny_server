@@ -14,7 +14,7 @@ The API supports CORS with the following configuration:
 Note: In production, you should replace the wildcard origin (`*`) with your specific domain(s).
 
 ### Authentication
-All endpoints (except `/health` and `/players/create`) require two headers:
+All endpoints (except `/health`) require two headers:
 - `X-User-Secret`: Your secret key obtained during player creation
 - `X-User-Id`: Your player ID
 
@@ -27,11 +27,12 @@ All endpoints (except `/health` and `/players/create`) require two headers:
   name: string;            // Player's display name
   bodyColor: string;       // Player's body color
   trailColor: string;      // Player's trail color
+  levels: number[];        // Array of 5 numbers representing player levels
   selectedRocketIndex: number; // Selected rocket index
   clientVersion: string;   // Client version
   secretKey: string;       // Authentication secret
-  gameId?: string;         // Optional reference to current game
-  game?: Game;             // Optional relation to current game
+  activeGameId?: string;   // Optional reference to current game
+  activeGame?: Game;       // Optional relation to current game
   sessions: GameSession[]; // Player's game sessions
   authoredGames: Game[];   // Games created by this player
 }
@@ -41,33 +42,51 @@ All endpoints (except `/health` and `/players/create`) require two headers:
 
 #### Player Management
 
-##### Create Player
+##### Upsert Player
 ```http
-POST /players/create
+POST /players/upsert
 ```
-Creates a new player account.
+Creates a new player account or updates an existing one based on the X-User-Id header.
+
+Headers:
+- `X-User-Secret`: Your secret key
+- `X-User-Id`: Your player ID
 
 Request Body:
 ```json
 {
-  "id": "string",              // Unique player identifier
-  "name": "string",            // Display name
-  "bodyColor": "string",       // Hex color code
-  "trailColor": "string",      // Hex color code
-  "selectedRocketIndex": 0,    // Number
-  "clientVersion": "string",   // Version of the client
-  "secretKey": "string"        // Your secret key for authentication
+  "name": "string",            // Required for new players
+  "bodyColor": "string",       // Required for new players
+  "trailColor": "string",      // Required for new players
+  "levels": [0,0,0,0,0],       // Required for new players
+  "selectedRocketIndex": 0,    // Required for new players
+  "clientVersion": "string"    // Required for new players
 }
 ```
 
-Response:
+Response for new player:
+```json
+{
+  "id": "string",
+  "name": "string"
+}
+```
+
+Response for update:
 ```json
 {
   "id": "string",
   "name": "string",
+  "bodyColor": "string",
+  "trailColor": "string",
+  "levels": [0,0,0,0,0],
+  "selectedRocketIndex": 0,
+  "clientVersion": "string",
   "secretKey": "string"
 }
 ```
+
+Note: When X-User-Id doesn't exist in the database, the endpoint creates a new player. If it exists, it updates the player after verifying the X-User-Secret matches.
 
 ##### Get Player Info
 ```http
@@ -82,9 +101,28 @@ Response:
   "name": "string",
   "bodyColor": "string",
   "trailColor": "string",
+  "levels": [0,0,0,0,0],
   "selectedRocketIndex": 0,
   "clientVersion": "string",
-  "gameId": "string"
+  "activeGame": {
+    "id": "string",
+    "code": 0,
+    "difficulty": 0,
+    "galaxy": 0,
+    "questiontypes": 0,
+    "version": "string"
+  },
+  "sessions": [
+    {
+      "id": "string",
+      "gameId": "string",
+      "score": 0,
+      "correctAnswers": 0,
+      "completed": false,
+      "startedAt": "datetime",
+      "endedAt": "datetime"
+    }
+  ]
 }
 ```
 
@@ -115,35 +153,6 @@ Response:
     }
   }
 ]
-```
-
-##### Sync Player Config
-```http
-PATCH /players/sync
-```
-Updates player configuration. All fields are optional.
-
-Request Body:
-```json
-{
-  "name": "string",            // Optional
-  "bodyColor": "string",       // Optional
-  "trailColor": "string",      // Optional
-  "selectedRocketIndex": 0,    // Optional
-  "clientVersion": "string"    // Optional
-}
-```
-
-Response:
-```json
-{
-  "id": "string",
-  "name": "string",
-  "bodyColor": "string",
-  "trailColor": "string",
-  "selectedRocketIndex": 0,
-  "clientVersion": "string"
-}
 ```
 
 #### Game Management
@@ -312,6 +321,6 @@ Common status codes:
 - 400: Bad Request
 - 401: Unauthorized (missing/invalid headers)
 - 404: Not Found
-- 409: Conflict (e.g., duplicate player ID)
+- 409: Conflict (e.g., duplicate player ID or secret key)
 - 410: Game Expired
 - 500: Server Error
