@@ -212,7 +212,23 @@ Response:
     "questiontypes": 0,
     "version": "string",
     "seed": "string"
-  }
+  },
+  "author": {
+    "id": "string", 
+    "name": "string",
+    "bodyColor": "string",
+    "trailColor": "string",
+    "selectedRocketIndex": 0
+  },
+  "players": [
+    {
+      "id": "string",
+      "name": "string",
+      "bodyColor": "string",
+      "trailColor": "string",
+      "selectedRocketIndex": 0
+    }
+  ]
 }
 ```
 

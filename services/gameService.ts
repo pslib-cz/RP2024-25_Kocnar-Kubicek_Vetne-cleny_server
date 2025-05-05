@@ -227,6 +227,26 @@ export const joinGame: RequestHandler = async (req, res): Promise<void> => {
 
   const game = await prisma.game.findFirst({
     where: { code: parseInt(code, 10) },
+    include: {
+      author: {
+        select: {
+          id: true,
+          name: true,
+          bodyColor: true,
+          trailColor: true,
+          selectedRocketIndex: true
+        }
+      },
+      activePlayers: {
+        select: {
+          id: true,
+          name: true,
+          bodyColor: true,
+          trailColor: true,
+          selectedRocketIndex: true
+        }
+      }
+    }
   });
 
   if (!game) {
@@ -276,6 +296,20 @@ export const joinGame: RequestHandler = async (req, res): Promise<void> => {
       version: game.version,
       seed: game.seed,
     },
+    author: {
+      id: game.author.id,
+      name: game.author.name,
+      bodyColor: game.author.bodyColor,
+      trailColor: game.author.trailColor,
+      selectedRocketIndex: game.author.selectedRocketIndex
+    },
+    players: game.activePlayers.map(p => ({
+      id: p.id,
+      name: p.name,
+      bodyColor: p.bodyColor,
+      trailColor: p.trailColor,
+      selectedRocketIndex: p.selectedRocketIndex
+    }))
   });
 };
 
