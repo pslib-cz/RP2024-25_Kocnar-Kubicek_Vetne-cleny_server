@@ -10,7 +10,8 @@ import {
   getPlayerSessions, 
   getGameSessions,
   upsertPlayer,
-  getPlayerInfo
+  getPlayerInfo,
+  getAuthoredGames
 } from './services/gameService';
 
 const app = express();
@@ -90,6 +91,7 @@ const playerRouter = express.Router();
 playerRouter.post('/upsert', upsertPlayer);
 playerRouter.get('/:playerId', getPlayerInfo);
 playerRouter.get('/:playerId/sessions', getPlayerSessions);
+playerRouter.get('/me/authored-games', getAuthoredGames);
 
 // Mount routers
 app.use('/games', gameRouter);

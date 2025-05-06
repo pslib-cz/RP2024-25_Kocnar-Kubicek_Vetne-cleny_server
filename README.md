@@ -155,6 +155,51 @@ Response:
 ]
 ```
 
+##### Get Player Authored Games
+```http
+GET /players/me/authored-games
+```
+Retrieves all games created by the authenticated player.
+
+Authentication:
+- Requires X-User-Id and X-User-Secret headers
+
+Response:
+```json
+[
+  {
+    "id": "string",
+    "code": 0,
+    "difficulty": 0,
+    "galaxy": 0,
+    "questiontypes": 0,
+    "version": "string",
+    "seed": "string",
+    "active": true,
+    "expirationTime": "datetime",
+    "createdAt": "datetime",
+    "sessions": [
+      {
+        "id": "string",
+        "playerId": "string",
+        "score": 0,
+        "correctAnswers": 0,
+        "completed": false,
+        "startedAt": "datetime",
+        "endedAt": "datetime",
+        "player": {
+          "id": "string",
+          "name": "string",
+          "bodyColor": "string",
+          "trailColor": "string",
+          "selectedRocketIndex": 0
+        }
+      }
+    ]
+  }
+]
+```
+
 #### Game Management
 
 ##### Create Game

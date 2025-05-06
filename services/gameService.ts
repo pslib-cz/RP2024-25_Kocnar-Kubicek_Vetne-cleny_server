@@ -494,6 +494,61 @@ export const getPlayerInfo: RequestHandler = async (req, res): Promise<void> => 
   res.json(playerWithParsedLevels);
 };
 
+// Get player's authored games
+export const getAuthoredGames: RequestHandler = async (req, res): Promise<void> => {
+  const secretKey = req.headers['x-user-secret'] as string;
+  const playerId = req.headers['x-user-id'] as string;
+
+  if (!secretKey || !playerId) {
+    res.status(401).json({ error: 'Missing authentication headers' });
+    return;
+  }
+
+  // Verify secret key
+  if (!await verifySecretKey(playerId, secretKey)) {
+    res.status(401).json({ error: 'Invalid secret key' });
+    return;
+  }
+
+  try {
+    const authoredGames = await prisma.game.findMany({
+      where: { 
+        authorId: playerId 
+      },
+      orderBy: {
+        createdAt: 'desc'
+      },
+      include: {
+        sessions: {
+          select: {
+            id: true,
+            playerId: true,
+            score: true,
+            correctAnswers: true,
+            completed: true,
+            startedAt: true,
+            endedAt: true,
+            player: {
+              select: {
+                id: true,
+                name: true,
+                bodyColor: true,
+                trailColor: true,
+                selectedRocketIndex: true
+              }
+            }
+          }
+        }
+      }
+    });
+
+    res.json(authoredGames);
+  } catch (error) {
+    console.error('Error fetching authored games:', error);
+    res.status(500).json({ error: 'Failed to fetch authored games' });
+  }
+};
+
 // Helper functions
 function validateGameInput(difficulty: number, galaxy: number, questiontypes: number, version: string): boolean {
   return (
