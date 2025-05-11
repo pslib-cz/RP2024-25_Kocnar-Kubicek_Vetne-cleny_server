@@ -24,6 +24,7 @@ model Game {
   seed           String?
   expirationTime DateTime
   authorId       String
+  questionCount  Int
   author         Player   @relation("GameAuthor", fields: [authorId], references: [id])
   activePlayers  Player[] @relation("GameToPlayers")
   sessions       GameSession[]

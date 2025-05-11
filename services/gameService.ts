@@ -110,7 +110,7 @@ export const upsertPlayer: RequestHandler = async (req, res): Promise<void> => {
 
 // Game Management
 export const createGame: RequestHandler = async (req, res): Promise<void> => {
-  const { difficulty, galaxy, questiontypes, version, expirationTime, seeded } = req.body;
+  const { difficulty, galaxy, questiontypes, version, expirationTime, seeded, questionCount } = req.body;
   const secretKey = req.headers['x-user-secret'] as string;
   const authorId = req.headers['x-user-id'] as string;
 
@@ -130,7 +130,7 @@ export const createGame: RequestHandler = async (req, res): Promise<void> => {
   }
 
   // Validate input
-  if (!validateGameInput(difficulty, galaxy, questiontypes, version)) {
+  if (!validateGameInput(difficulty, galaxy, questiontypes, version, questionCount)) {
     res.status(400).json({ error: 'Invalid input parameters' });
     return;
   }
@@ -178,6 +178,7 @@ export const createGame: RequestHandler = async (req, res): Promise<void> => {
           active: true,
           expirationTime,
           authorId,
+          questionCount,
         },
         include: {
           author: true
@@ -549,12 +550,13 @@ export const getAuthoredGames: RequestHandler = async (req, res): Promise<void> 
 };
 
 // Helper functions
-function validateGameInput(difficulty: number, galaxy: number, questiontypes: number, version: string): boolean {
+function validateGameInput(difficulty: number, galaxy: number, questiontypes: number, version: string, questionCount: number): boolean {
   return (
     typeof difficulty === 'number' && difficulty >= 0 && difficulty <= 100 &&
     typeof galaxy === 'number' && galaxy >= 0 && galaxy <= 4 &&
     typeof questiontypes === 'number' && questiontypes >= 0 &&
-    typeof version === 'string'
+    typeof version === 'string' &&
+    typeof questionCount === 'number' && questionCount > 0
   );
 }
 

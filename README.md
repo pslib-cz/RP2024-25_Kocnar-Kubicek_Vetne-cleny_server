@@ -219,7 +219,8 @@ Request Body:
   "questiontypes": 0,         // Bitmask of question types
   "version": "string",        // Client version
   "expirationTime": "datetime", // Game expiration time
-  "seeded": boolean           // Whether to generate a seed for the game
+  "seeded": boolean,          // Whether to generate a seed for the game
+  "questionCount": 0          // Number of questions in the game
 }
 ```
 
