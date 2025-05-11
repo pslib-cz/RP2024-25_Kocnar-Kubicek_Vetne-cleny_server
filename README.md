@@ -27,7 +27,7 @@ All endpoints (except `/health`) require two headers:
   name: string;            // Player's display name
   bodyColor: string;       // Player's body color
   trailColor: string;      // Player's trail color
-  levels: number[];        // Array of 5 numbers representing player levels
+  levels: string;          // Comma-separated string of 5 numbers representing player levels, always formatted as an 5 int array
   selectedRocketIndex: number; // Selected rocket index
   clientVersion: string;   // Client version
   secretKey: string;       // Authentication secret
@@ -58,7 +58,7 @@ Request Body:
   "name": "string",            // Required for new players
   "bodyColor": "string",       // Required for new players
   "trailColor": "string",      // Required for new players
-  "levels": [0,0,0,0,0],       // Required for new players
+  "levels": [0,0,0,0,0],       // Required for new players, array of 5 numbers
   "selectedRocketIndex": 0,    // Required for new players
   "clientVersion": "string"    // Required for new players
 }
@@ -81,12 +81,11 @@ Response for update:
   "trailColor": "string",
   "levels": [0,0,0,0,0],
   "selectedRocketIndex": 0,
-  "clientVersion": "string",
-  "secretKey": "string"
+  "clientVersion": "string"
 }
 ```
 
-Note: When X-User-Id doesn't exist in the database, the endpoint creates a new player. If it exists, it updates the player after verifying the X-User-Secret matches.
+Note: When X-User-Id doesn't exist in the database, the endpoint creates a new player. If it exists, it updates the player after verifying the X-User-Secret matches. The levels field is stored as a comma-separated string in the database but is returned as an array in the response.
 
 ##### Get Player Info
 ```http
@@ -110,7 +109,11 @@ Response:
     "difficulty": 0,
     "galaxy": 0,
     "questiontypes": 0,
-    "version": "string"
+    "version": "string",
+    "seed": "string",
+    "active": true,
+    "expirationTime": "datetime",
+    "createdAt": "datetime"
   },
   "sessions": [
     {
@@ -215,7 +218,8 @@ Request Body:
   "galaxy": 0,                // 0-4
   "questiontypes": 0,         // Bitmask of question types
   "version": "string",        // Client version
-  "expiration": 0             // Number of seconds until game expires
+  "expirationTime": "datetime", // Game expiration time
+  "seeded": boolean           // Whether to generate a seed for the game
 }
 ```
 
@@ -231,7 +235,7 @@ Response:
 }
 ```
 
-Note: The game will automatically expire and become inactive after the specified expiration time. The expiration time is stored as a DateTime in the database and is calculated as `current_time + expiration_seconds`.
+Note: The game will automatically expire and become inactive after the specified expiration time. The expiration time is stored as a DateTime in the database. If seeded is true, a random seed will be generated for the game.
 
 ##### Join Game
 ```http

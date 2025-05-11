@@ -110,7 +110,7 @@ export const upsertPlayer: RequestHandler = async (req, res): Promise<void> => {
 
 // Game Management
 export const createGame: RequestHandler = async (req, res): Promise<void> => {
-  const { difficulty, galaxy, questiontypes, version, expiration } = req.body;
+  const { difficulty, galaxy, questiontypes, version, expirationTime, seeded } = req.body;
   const secretKey = req.headers['x-user-secret'] as string;
   const authorId = req.headers['x-user-id'] as string;
 
@@ -146,12 +146,11 @@ export const createGame: RequestHandler = async (req, res): Promise<void> => {
   }
 
   const gameId = uuidv4();
-  const seed = crypto.randomBytes(16).toString('hex');
-  const expirationTime = new Date(Date.now() + expiration * 1000);
+  const seed = seeded ? crypto.randomBytes(16).toString('hex') : undefined;
 
   // Try to create a game with a unique code
   let attempts = 0;
-  const maxAttempts = 5;
+  const maxAttempts = 10;
   let game;
 
   while (attempts < maxAttempts) {
