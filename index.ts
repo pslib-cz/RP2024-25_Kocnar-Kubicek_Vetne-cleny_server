@@ -13,6 +13,8 @@ import {
   getPlayerInfo,
   getAuthoredGames
 } from './services/gameService';
+import path from 'path';
+import setsManagerRouter from './services/setsManagerService';
 
 const app = express();
 const port = 5173;
@@ -97,6 +99,12 @@ playerRouter.get('/me/authored-games', getAuthoredGames);
 app.use('/games', gameRouter);
 app.use('/sessions', sessionRouter);
 app.use('/players', playerRouter);
+
+// Static serving
+app.use('/', express.static(path.join(__dirname, 'www-root')));
+
+// Sets manager routes
+app.use('/upload', setsManagerRouter);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
