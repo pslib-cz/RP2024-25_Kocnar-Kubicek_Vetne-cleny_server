@@ -1,18 +1,14 @@
 FROM oven/bun:latest
 
-# Set the working directory in the container
 WORKDIR /app
-
-# Copy the current directory contents into the container at /app
 COPY . .
 
-# Install dependencies
 RUN bun install
 
-# Expose the port on which the API will listen
-EXPOSE 3000
+EXPOSE 5173/tcp
 
-# run the app
 USER bun
-EXPOSE 3000/tcp
-ENTRYPOINT [ "bun", "run", "index.ts" ]
+COPY entrypoint.sh .
+RUN chmod +x entrypoint.sh
+
+ENTRYPOINT ["./entrypoint.sh"]
