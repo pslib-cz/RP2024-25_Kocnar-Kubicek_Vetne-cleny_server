@@ -9,6 +9,6 @@ EXPOSE 5173/tcp
 
 USER bun
 COPY entrypoint.sh .
-RUN chmod +x entrypoint.sh
+RUN ls -la
 
 ENTRYPOINT ["./entrypoint.sh"]
