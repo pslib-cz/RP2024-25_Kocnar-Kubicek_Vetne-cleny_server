@@ -11,6 +11,8 @@ const TYPES_FILE = join(SETS_DIR, 'types.json');
 const ADMIN_USER = 'admin';
 const ADMIN_PASS = process.env.ADMIN_PASSWORD || 'admin';
 
+const VERSION_FILE = join(SETS_DIR, 'version.json');
+
 const upload = multer();
 
 function basicAuth(req: express.Request, res: express.Response, next: express.NextFunction) {
@@ -64,4 +66,4 @@ router.post('/types', basicAuth, upload.single('file'), (req, res) => {
     });
 });
 
-export default router; 
+export default router;
