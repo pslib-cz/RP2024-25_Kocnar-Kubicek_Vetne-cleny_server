@@ -17,7 +17,9 @@ import path from 'path';
 import setsManagerRouter from './services/setsManagerService';
 
 const app = express();
-const port = 5173;
+const port = process.env.PORT ?? 5173;
+
+const DATA_ROOT = process.env.DATA_ROOT ?? path.join(__dirname, 'data');
 
 // CORS configuration
 const corsOptions = {
@@ -102,6 +104,7 @@ app.use('/players', playerRouter);
 
 // Static serving
 app.use('/', express.static(path.join(__dirname, 'www-root')));
+app.use('/sets', express.static(path.join(DATA_ROOT, 'sets')));
 
 // Sets manager routes
 app.use('/upload', setsManagerRouter);

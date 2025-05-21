@@ -9,7 +9,6 @@ RUN bun install
 EXPOSE 5173/tcp
 
 USER bun
-COPY --chmod=755 entrypoint.sh .
 RUN ls -la
 
-ENTRYPOINT ["./entrypoint.sh"]
+ENTRYPOINT ["bun", "index.ts"]
