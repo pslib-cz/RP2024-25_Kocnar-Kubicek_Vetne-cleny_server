@@ -116,10 +116,14 @@ app.get('/health', (req, res) => {
 
 // Start the server
 app.listen(port, () => {
-  console.log(`Server is running on http://localhost:${port}`);
-  console.log('Logging enabled:');
-  console.log('- HTTP requests (Morgan)');
-  console.log('- Request/Response bodies');
-  console.log('- Request duration');
-  console.log('- Error stack traces');
+    console.log(`Server is running on http://localhost:${port}`);
+    console.log('Logging enabled:');
+    console.log('- HTTP requests (Morgan)');
+    console.log('- Request/Response bodies');
+    console.log('- Request duration');
+    console.log('- Error stack traces');
+    console.log("ENVS:");
+    console.log("DATABASE_URL:", process.env.DATABASE_URL, Bun.env.DATABASE_URL);
+    console.log("DATA_ROOT:", process.env.DATA_ROOT, Bun.env.DATA_ROOT);
+    console.log("PORT:", process.env.PORT, Bun.env.PORT);
 });
