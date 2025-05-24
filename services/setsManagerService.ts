@@ -5,7 +5,9 @@ import multer from 'multer';
 
 const router = express.Router();
 
-const SETS_DIR = join(__dirname, '../www-root/sets');
+const DATA_ROOT = process.env.DATA_ROOT ?? join(__dirname, 'data');
+
+const SETS_DIR = join(DATA_ROOT, 'sets')
 const SETS_FILE = join(SETS_DIR, 'sets.json');
 const TYPES_FILE = join(SETS_DIR, 'types.json');
 const ADMIN_USER = 'admin';
