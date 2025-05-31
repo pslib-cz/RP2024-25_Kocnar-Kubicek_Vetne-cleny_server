@@ -290,6 +290,7 @@ export const joinGame: RequestHandler = async (req, res): Promise<void> => {
   res.json({
     playerId: player.id,
     game: {
+      id: game.id,
       difficulty: game.difficulty,
       galaxy: game.galaxy,
       questiontypes: game.questiontypes,
