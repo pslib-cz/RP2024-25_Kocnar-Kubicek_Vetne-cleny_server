@@ -295,6 +295,8 @@ export const joinGame: RequestHandler = async (req, res): Promise<void> => {
       questiontypes: game.questiontypes,
       version: game.version,
       seed: game.seed,
+      questionCount: game.questionCount,
+      expirationTime: game.expirationTime,
     },
     author: {
       id: game.author.id,
