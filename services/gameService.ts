@@ -537,7 +537,9 @@ export const getAuthoredGames: RequestHandler = async (req, res): Promise<void> 
                 name: true,
                 bodyColor: true,
                 trailColor: true,
-                selectedRocketIndex: true
+                selectedRocketIndex: true,
+                clientVersion: true,
+                levels: true,
               }
             }
           }
