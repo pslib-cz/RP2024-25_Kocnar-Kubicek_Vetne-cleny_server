@@ -263,7 +263,11 @@ export const joinGame: RequestHandler = async (req, res): Promise<void> => {
     return;
   }
 
-  if (game.version !== version) {
+  // so minor fixes dont break the game (the last number) :D
+  const gameVersionParts = game.version.split('.');
+  const clientVersionParts = version.split('.');
+  
+  if (gameVersionParts[0] !== clientVersionParts[0] || gameVersionParts[1] !== clientVersionParts[1]) {
     res.status(400).json({ error: 'Version mismatch' });
     return;
   }

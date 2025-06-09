@@ -49,6 +49,8 @@ router.post('/sets', basicAuth, upload.single('file'), (req, res) => {
       res.status(500).json({ error: 'Failed to write sets.json' });
       return void 0;
     });
+
+  Bun.write(VERSION_FILE, JSON.stringify({ version: new Date().toLocaleString().replaceAll(' ', '-').replaceAll('.', '').replaceAll(':', '-') }))
 });
 
 router.post('/types', basicAuth, upload.single('file'), (req, res) => {
