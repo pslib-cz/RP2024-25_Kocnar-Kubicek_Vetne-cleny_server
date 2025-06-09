@@ -50,7 +50,8 @@ router.post('/sets', basicAuth, upload.single('file'), (req, res) => {
       return void 0;
     });
 
-  Bun.write(VERSION_FILE, JSON.stringify({ version: new Date().toLocaleString().replaceAll(' ', '-').replaceAll('.', '').replaceAll(':', '-') }))
+  const now = new Date();
+  Bun.write(VERSION_FILE, JSON.stringify({ version: `${now.getFullYear()}-${now.getMonth()}-${now.getDate()}-${now.getHours()}-${now.getMinutes()}-${now.getSeconds()}` }))
 });
 
 router.post('/types', basicAuth, upload.single('file'), (req, res) => {
