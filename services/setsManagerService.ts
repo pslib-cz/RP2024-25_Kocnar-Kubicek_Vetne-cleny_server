@@ -45,7 +45,8 @@ router.post('/sets', basicAuth, upload.single('file'), (req, res) => {
       res.status(200).json({ status: 'ok' });
       return void 0;
     })
-    .catch(() => {
+    .catch((err) => {
+      console.error(err);
       res.status(500).json({ error: 'Failed to write sets.json' });
       return void 0;
     });
@@ -65,7 +66,8 @@ router.post('/types', basicAuth, upload.single('file'), (req, res) => {
       res.status(200).json({ status: 'ok' });
       return void 0;
     })
-    .catch(() => {
+    .catch((err) => {
+      console.error(err);   
       res.status(500).json({ error: 'Failed to write types.json' });
       return void 0;
     });
