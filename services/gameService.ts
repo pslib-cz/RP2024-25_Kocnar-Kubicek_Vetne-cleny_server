@@ -369,7 +369,7 @@ export const startSession: RequestHandler = async (req, res): Promise<void> => {
 
 export const updateSession: RequestHandler = async (req, res): Promise<void> => {
   const { sessionId } = req.params;
-  const { score, correctAnswers, completed } = req.body;
+  const { score, correctAnswers, completed, answers } = req.body; // Include answers in the request body
   const secretKey = req.headers['x-user-secret'] as string;
   const playerId = req.headers['x-user-id'] as string;
 
@@ -413,6 +413,7 @@ export const updateSession: RequestHandler = async (req, res): Promise<void> => 
     updateData.completed = completed;
     if (completed) updateData.endedAt = new Date();
   }
+  if (Array.isArray(answers)) updateData.answers = JSON.stringify(answers); // Convert answers to JSON string if provided
 
   const updatedSession = await prisma.gameSession.update({
     where: { id: sessionId },

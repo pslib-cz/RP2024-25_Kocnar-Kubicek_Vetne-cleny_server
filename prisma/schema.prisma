@@ -55,6 +55,7 @@ model GameSession {
   game            Game     @relation(fields: [gameId], references: [id])
   score           Int      @default(0)
   correctAnswers  Int      @default(0)
+  answers         String?  // Change to JSON string to store player answers
   completed       Boolean  @default(false)
   startedAt       DateTime @default(now())
   endedAt         DateTime?
