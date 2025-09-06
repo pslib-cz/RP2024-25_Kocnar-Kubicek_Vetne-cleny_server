@@ -53,6 +53,10 @@ router.post('/sets', basicAuth, upload.single('file'), (req, res) => {
 
   const now = new Date();
   Bun.write(VERSION_FILE, JSON.stringify({ version: `${now.getFullYear()}-${now.getMonth()}-${now.getDate()}-${now.getHours()}-${now.getMinutes()}-${now.getSeconds()}` }))
+    .catch(() => {
+      res.status(500).json({ error: 'Failed to write version.json' });
+      return void 0;
+    });
 });
 
 router.post('/types', basicAuth, upload.single('file'), (req, res) => {
@@ -69,6 +73,19 @@ router.post('/types', basicAuth, upload.single('file'), (req, res) => {
     .catch((err) => {
       console.error(err);   
       res.status(500).json({ error: 'Failed to write types.json' });
+      return void 0;
+    });
+});
+
+router.post('/version', basicAuth, (req, res) => {
+  const now = new Date();
+  Bun.write(VERSION_FILE, JSON.stringify({ version: `${now.getFullYear()}-${now.getMonth()}-${now.getDate()}-${now.getHours()}-${now.getMinutes()}-${now.getSeconds()}` }))
+    .then(() => {
+      res.status(200).json({ status: 'ok' });
+      return void 0;
+    })
+    .catch(() => {
+      res.status(500).json({ error: 'Failed to write version.json' });
       return void 0;
     });
 });
