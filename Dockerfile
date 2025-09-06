@@ -11,5 +11,6 @@ EXPOSE 8080
 
 USER bun
 RUN ls -la
+RUN bun x prisma generate
 
 ENTRYPOINT ["bun", "index.ts"]
