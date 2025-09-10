@@ -536,6 +536,7 @@ export const getAuthoredGames: RequestHandler = async (req, res): Promise<void> 
             completed: true,
             startedAt: true,
             endedAt: true,
+            answers: true,
             player: {
               select: {
                 id: true,
@@ -556,6 +557,106 @@ export const getAuthoredGames: RequestHandler = async (req, res): Promise<void> 
   } catch (error) {
     console.error('Error fetching authored games:', error);
     res.status(500).json({ error: 'Failed to fetch authored games' });
+  }
+};
+
+export const getAuthoredGameById: RequestHandler = async (req, res): Promise<void> => {
+  const { gameId } = req.params;
+  const secretKey = req.headers['x-user-secret'] as string;
+  const playerId = req.headers['x-user-id'] as string;
+
+  if (!secretKey || !playerId) {
+    res.status(401).json({ error: 'Missing authentication headers' });
+    return;
+  }
+
+  // Verify secret key
+  if (!await verifySecretKey(playerId, secretKey)) {
+    res.status(401).json({ error: 'Invalid secret key' });
+    return;
+  }
+
+  try {
+    const game = await prisma.game.findFirst({
+      where: {
+        id: gameId,
+        authorId: playerId
+      },
+      include: {
+        sessions: {
+          select: {
+            id: true,
+            playerId: true,
+            score: true,
+            correctAnswers: true,
+            completed: true,
+            startedAt: true,
+            endedAt: true,
+            answers: true,
+            player: {
+              select: {
+                id: true,
+                name: true,
+                bodyColor: true,
+                trailColor: true,
+                selectedRocketIndex: true,
+                clientVersion: true,
+                levels: true,
+              }
+            }
+          }
+        }
+      }
+    });
+
+    if (!game) {
+      res.status(404).json({ error: 'Game not found' });
+      return;
+    }
+
+    res.json(game);
+  } catch (error) {
+    console.error('Error fetching authored game:', error);
+    res.status(500).json({ error: 'Failed to fetch authored game' });
+  }
+};
+
+export const getPlayedGameById: RequestHandler = async (req, res): Promise<void> => {
+  const { gameId } = req.params;
+  const secretKey = req.headers['x-user-secret'] as string;
+  const playerId = req.headers['x-user-id'] as string;
+
+  if (!secretKey || !playerId) {
+    res.status(401).json({ error: 'Missing authentication headers' });
+    return;
+  }
+
+  // Verify secret key
+  if (!await verifySecretKey(playerId, secretKey)) {
+    res.status(401).json({ error: 'Invalid secret key' });
+    return;
+  }
+
+  try {
+    const session = await prisma.gameSession.findFirst({
+      where: {
+        gameId: gameId,
+        playerId: playerId
+      },
+      include: {
+        game: true
+      }
+    });
+
+    if (!session) {
+      res.status(404).json({ error: 'Game session not found' });
+      return;
+    }
+
+    res.json(session);
+  } catch (error) {
+    console.error('Error fetching played game:', error);
+    res.status(500).json({ error: 'Failed to fetch played game' });
   }
 };
 
