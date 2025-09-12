@@ -413,7 +413,7 @@ export const updateSession: RequestHandler = async (req, res): Promise<void> => 
     updateData.completed = completed;
     if (completed) updateData.endedAt = new Date();
   }
-  if (Array.isArray(answers)) updateData.answers = JSON.stringify(answers); // Convert answers to JSON string if provided
+  if (typeof answers === 'string') updateData.answers = answers; // Convert answers to JSON string if provided
 
   const updatedSession = await prisma.gameSession.update({
     where: { id: sessionId },
