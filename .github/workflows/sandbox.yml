@@ -1,6 +1,8 @@
 name: Nasazení na Sandbox
 on:
-  push: {}
+  release:
+    types:
+      - released
   workflow_dispatch: {}
 jobs:
   deploy:
