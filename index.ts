@@ -17,6 +17,7 @@ import {
 } from './services/gameService';
 import path from 'path';
 import setsManagerRouter from './services/setsManagerService';
+import adminAnalyticsRouter from './services/analyticsService';
 
 const app = express();
 const port = process.env.PORT ?? 5173;
@@ -112,6 +113,9 @@ app.use('/sets', express.static(path.join(DATA_ROOT, 'sets')));
 
 // Sets manager routes
 app.use('/upload', setsManagerRouter);
+
+// Admin analytics + dashboard data routes (Basic Auth protected)
+app.use('/admin', adminAnalyticsRouter);
 
 // Health check endpoint
 app.get('/health', (req, res) => {

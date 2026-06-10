@@ -2,6 +2,7 @@ import express from 'express';
 import type { Request } from 'express';
 import { join } from 'path';
 import multer from 'multer';
+import { basicAuth } from './adminAuth';
 
 const router = express.Router();
 
@@ -10,29 +11,10 @@ const DATA_ROOT = process.env.DATA_ROOT ?? join(__dirname, 'data');
 const SETS_DIR = join(DATA_ROOT, 'sets')
 const SETS_FILE = join(SETS_DIR, 'sets.json');
 const TYPES_FILE = join(SETS_DIR, 'types.json');
-const ADMIN_USER = 'admin';
-const ADMIN_PASS = process.env.ADMIN_PASSWORD || 'admin';
 
 const VERSION_FILE = join(SETS_DIR, 'version.json');
 
 const upload = multer();
-
-function basicAuth(req: express.Request, res: express.Response, next: express.NextFunction) {
-  const auth = req.headers['authorization'];
-  if (!auth || !auth.startsWith('Basic ')) {
-    res.set('WWW-Authenticate', 'Basic realm="SetsManager"');
-    res.status(401).send('Authentication required');
-    return;
-  }
-  const base64 = auth.split(' ')[1];
-  const [user, pass] = Buffer.from(base64, 'base64').toString().split(':');
-  if (user !== ADMIN_USER || pass !== ADMIN_PASS) {
-    res.set('WWW-Authenticate', 'Basic realm="SetsManager"');
-    res.status(401).send('Invalid credentials');
-    return;
-  }
-  next();
-}
 
 router.post('/sets', basicAuth, upload.single('file'), (req, res) => {
   const fileReq = req as Request & { file?: Express.Multer.File };

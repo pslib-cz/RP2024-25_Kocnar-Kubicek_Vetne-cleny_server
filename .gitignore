@@ -134,3 +134,9 @@ dist
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
+
+# Local runtime data (SQLite database + uploaded sets). Stays on the server.
+datax/
+data/*.sqlite
+data/*.sqlite_
+data/*.sqlite-journal
